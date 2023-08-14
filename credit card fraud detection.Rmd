@@ -1,0 +1,585 @@
+---
+title: "**WQD7004 Group Assignment**"
+output: 
+    html_document:
+      number_sections: FALSE
+      collapse: false
+      toc: true
+      toc_depth: 6
+      toc_float: true
+      highlight: espresso
+      themes: flatly
+---
+
+
+```{css, echo=FALSE}
+.columns {display: flex;}
+h1 {color: #4F3139;}
+h2 {color: #4F3139;}
+```
+
+<style>
+body {
+  background-color: #F8F4EB; /* Replace with your desired background color */
+}
+</style>
+
+### Group Members
+* Khairun Nadzirah Binti Abdul Karim (22066330)
+* Muhammad Shahzad Rafiq (S2150889)
+* Sadman Chowdhury (S2199546)
+* Yin QiXiang (S2150692)
+* Xin Dong (22060696)
+
+### Title 
+Credit Card Customer Churn Detection Using Machine Learning Algorithms
+![](https://miro.medium.com/v2/resize:fit:1200/1*47xx1oXuebvYwZeB0OutuA.png)
+
+### Dataset 
+Credit Card Fraud Data <br> https://data.world/vlad/credit-card-fraud-detection
+
+## Introduction
+The rapid growth of the banking industry has allowed consumers to be more discerning about the banks they want to maintain relationships with. Thus, customer retention has become a significant concern for many financial institutions. One particular area where customer retention is particularly significant is in the realm of credit cards. High churn rates, the rate at which customers stop doing business with an entity, can lead to significant revenue losses and higher acquisition costs for new customers. This project aims to predict credit card customer churn, to help banks identify and retain customers at risk of churning.
+
+## Problem Statement
+Customer churn in the banking sector, particularly in credit cards, is a persistent issue. Predicting churn can be a complex task due to the multitude of factors that can influence a customer's decision to leave, including customer service quality, better offerings from competitors, changes in customer financial circumstances, and more. Despite the advent of advanced data analytics techniques, many banks still struggle to predict and mitigate customer churn effectively. This project will focus on this problem, attempting to develop a model that can accurately predict customer churn and thus provide valuable insights to help banks retain their valuable credit card customers.
+
+## Research Objective
+1.  To understand the factors that contribute to credit card customer churn.
+2.  To develop a predictive model for credit card customer churn.
+3.  To provide recommendations for customer churn reduction strategies.
+
+## Research Question
+1.  What are the key factors influencing credit card customer churn?
+2.  How accurately can we predict credit card customer churn?
+3.  What strategies can banks implement to reduce churn rates among credit card customers?
+
+## Dataset
+
+```{r, message = FALSE}
+# Loading necessary libraries
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(corrplot)
+library(hexbin)
+library(plyr)
+library(tidyr)
+library(purrr)
+library(gridExtra)
+library(ggrepel)
+library(pastecs)
+library(caret)
+#library(ROSE)
+library(randomForest)
+library(e1071)
+library(rpart)
+library(rpart.plot)
+
+
+
+```
+
+```{r}
+c_data <- read.csv('BankChurners.csv')
+head(c_data, 3)
+```
+
+## Data Cleaning
+```{r, echo = TRUE, results = 'hide'}
+# Remove duplicates
+c_data <- unique(c_data)
+```
+
+```{r}
+# Check for null values in each column
+null_counts <- sapply(c_data, function(x) sum(is.na(x)))
+```
+```{r}
+# Drop unnecessary columns
+c_data <- c_data[, -c(1, 22, 23)]
+
+```
+
+## EDA
+
+### Distribution of Customer Age
+
+```{r, echo=FALSE, message=FALSE}
+# Box plot
+p1 <- ggplot(c_data, aes(x = "", y = Customer_Age)) +
+  geom_boxplot() +
+  labs(x = NULL, y = "Customer Age") +
+  theme_minimal()
+
+# Histogram
+p2 <- ggplot(c_data, aes(x = Customer_Age)) +
+  geom_histogram() +
+  labs(x = "Customer Age", y = "Count") +
+  theme_minimal()
+
+# Combine plots
+grid.arrange(p1, p2, nrow = 2)
+
+```
+
+The distribution of customer ages in the dataset follows a fairly normal distribution. The box plot provides an overview of the median, quartiles, and any potential outliers in the age variable. The histogram illustrates the count of customers in each age group.
+
+Next, we will perform similar EDA analysis for other variables in the dataset:
+
+### Distribution of Gender
+
+```{r, echo=FALSE, message=FALSE}
+# Bar plot
+ggplot(c_data, aes(x = Gender, fill = Gender)) +
+  geom_bar() +
+  labs(x = "Gender", y = "Count") +
+  theme_minimal()
+
+```
+More samples of females in our dataset are compared to males, but the percentage of difference is not that significant, so we can say that genders are uniformly distributed.
+
+
+### Distribution of Education Level
+
+```{r, echo=FALSE, message=FALSE}
+# Bar plot
+ggplot(c_data, aes(x = Education_Level, fill = Education_Level)) +
+  geom_bar() +
+  labs(x = "Education Level", y = "Count") +
+  theme_minimal()
+```
+
+
+### Correlation between Numeric Variables
+
+```{r, echo=FALSE, message=FALSE}
+# Select numeric variables for correlation analysis
+numeric_vars <- c_data %>% select_if(is.numeric)
+
+# Compute correlation matrix
+cor_matrix <- cor(numeric_vars)
+
+# Plot correlation matrix
+corrplot(cor_matrix, method = "circle", type = "lower", tl.cex = 0.8)
+```
+
+The correlation matrix provides an overview of the relationships between the numeric variables in the dataset. It helps identify any strong positive or negative correlations between variables.
+
+### Scatter Plot: Total_Trans_Amt vs. Total_Trans_Ct
+
+```{r, echo=FALSE, message=FALSE}
+ggplot(c_data, aes(x = Total_Trans_Amt, y = Total_Trans_Ct)) +
+  geom_point() +
+  labs(x = "Total Transaction Amount", y = "Total Transaction Count") +
+  theme_minimal()
+```
+
+The scatter plot showcases the relationship between the total transaction amount and the total transaction count. It helps visualize any patterns or trends between these two variables.
+
+### Summary Statistics
+
+```{r, include=FALSE}
+# Compute summary statistics
+summary_stats <- c_data %>%
+  select_if(is.numeric) %>%
+  stat.desc()
+
+# Print summary statistics
+summary_stats
+```
+
+The summary statistics provide a comprehensive overview of the numerical variables in the dataset. It includes measures such as mean, median, standard deviation, minimum, maximum, and various percentiles.
+
+This EDA analysis provides insights into the distribution, relationships, and summary statistics of the key variables in the dataset. Further exploratory analyses can be conducted for other variables as per the project requirements.
+
+#### Distribution of dependent counts:
+
+```{r, echo=FALSE, message=FALSE}
+# Box plot
+p1 <- ggplot(c_data, aes(x = "", y = Dependent_count)) +
+  geom_boxplot() +
+  labs(x = NULL, y = "Dependent count") +
+  theme_minimal()
+
+# Histogram
+p2 <- ggplot(c_data, aes(x = Dependent_count)) +
+  geom_histogram() +
+  labs(x = "Dependent count", y = "Count") +
+  theme_minimal()
+
+# Combine plots
+grid.arrange(p1, p2, nrow = 2)
+```
+
+The distribution of dependent counts is fairly normally distributed with a slight right skew.
+
+```{r, include= FALSE}
+names(c_data)
+
+```
+
+
+```{r, echo=FALSE, message=FALSE}
+attrition_counts <- table(c_data$Attrition_Flag)
+
+# Calculate percentages
+attrition_percentages <- prop.table(attrition_counts) * 100
+
+# Bar plot with percentages
+barplot(attrition_counts, col = "lightblue", main = "Proportion of Existing and Attrited Customers Count",
+        ylab = "Count", ylim = c(0, max(attrition_counts) * 1.1))
+text(x = barplot(attrition_counts, col = "lightblue", main = "Proportion of Existing and Attrited Customers Count",
+                 ylab = "Count", ylim = c(0, max(attrition_counts) * 1.1)),
+     y = attrition_counts + 10, labels = paste0(round(attrition_percentages, 1), "%"), col = "black", cex = 0.8)
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Proportion of existing and attrited customers by gender (countplot)
+gender_attrition_counts <- table(c_data$Attrition_Flag, c_data$Gender)
+barplot(gender_attrition_counts, col = c("lightblue", "lightgreen"), beside = TRUE,
+        legend = rownames(gender_attrition_counts),
+        main = "Proportion of Existing and Attrited Customers by Gender")
+
+
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Pie chart
+ggplot(c_data, aes(x = "", fill = Income_Category)) +
+  geom_bar(width = 1, color = "white") +
+  coord_polar("y", start = 0) +
+  labs(x = NULL, fill = "Income Category") +
+  theme_minimal() +
+  theme(legend.position = "center") +
+  ggtitle("Proportion of Different Income Levels")
+```
+
+#### Distribution of months the customer is part of the bank:
+
+```{r, echo=FALSE, message=FALSE}
+# Box plot and histogram
+p1 <- ggplot(c_data, aes(x = "", y = Months_on_book)) +
+  geom_boxplot() +
+  labs(x = NULL, y = "Months on Book") +
+  theme_minimal()
+
+p2 <- ggplot(c_data, aes(x = Months_on_book)) +
+  geom_histogram() +
+  labs(x = "Months on Book", y = "Count") +
+  theme_minimal()
+
+grid.arrange(p1, p2, nrow = 2)
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Proportion of entire education levels
+education_counts <- table(c_data$Education_Level)
+barplot(education_counts, col = "lightblue", main = "Proportion of Entire Education Levels")
+
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Proportion of education level by existing and attrited customer
+attrition_education_counts <- table(c_data$Education_Level, c_data$Attrition_Flag)
+barplot(attrition_education_counts, col = c("lightblue", "lightgreen"), beside = TRUE,
+        legend = rownames(attrition_education_counts),
+        main = "Proportion of Education Level by Existing and Attrited Customer")
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Proportion of education level by gender (countplot)
+ggplot(c_data, aes(x = Education_Level, fill = Gender)) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of Education Level by Gender", x = "Education Level", y = "Proportion") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+#### Proportion of Education Levels:
+If most of the customers with unknown education status lack any education, we can state that more than 70% of the customers have a formal education level. About 35% have a higher level of education.
+
+
+```{r, echo=FALSE, message=FALSE}
+# Proportion of marital status by attrited and existing customers
+marital_counts <- table(c_data$Marital_Status)
+barplot(marital_counts, col = "lightblue", main = "Proportion of Marital Status by Attrited and Existing Customers")
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Correlation using heatmap
+correlation_matrix <- cor(c_data[, c("Customer_Age", "Dependent_count", "Months_on_book", "Credit_Limit",
+                                     "Total_Revolving_Bal", "Avg_Open_To_Buy", "Total_Amt_Chng_Q4_Q1",
+                                     "Total_Trans_Amt", "Total_Trans_Ct", "Total_Ct_Chng_Q4_Q1",
+                                     "Avg_Utilization_Ratio")])
+heatmap(correlation_matrix, col = colorRampPalette(c("lightblue", "white", "lightcoral"))(100),
+        main = "Correlation Heatmap")
+
+```
+
+```{r, echo=FALSE, message=FALSE}
+
+# Proportion of income category
+income_counts <- table(c_data$Income_Category)
+barplot(income_counts, col = "lightblue", main = "Proportion of Income Category")
+```
+
+```{r, echo=FALSE, message=FALSE}
+# Proportion of income category by customer
+income_customer_counts <- table(c_data$Income_Category, c_data$Attrition_Flag)
+barplot(income_customer_counts, col = c("lightblue", "lightgreen"), beside = TRUE,
+        legend = rownames(income_customer_counts),
+        main = "Proportion of Income Category by Customer")
+```
+
+```{r, echo=FALSE, message=FALSE}
+
+# Customer age count by customer
+age_counts <- table(c_data$Customer_Age)
+barplot(age_counts, col = "lightblue", main = "Customer Age Count by Customer")
+```
+
+### Kurtosis of Months on book features:
+
+```{r, echo=FALSE, message=FALSE}
+# Calculate kurtosis
+kurtosis <- kurtosis(c_data$Months_on_book)
+
+# Print kurtosis value
+print(paste("Kurtosis of Months on book features is:", kurtosis))
+```
+
+Distribution of the Total Transaction Amount (Last 12 months):
+```{r, echo=FALSE, message=FALSE}
+# Box plot and histogram
+p1 <- ggplot(c_data, aes(x = "", y = Total_Trans_Amt)) +
+  geom_boxplot() +
+  labs(x = NULL, y = "Total Transaction Amount") +
+  theme_minimal()
+
+p2 <- ggplot(c_data, aes(x = Total_Trans_Amt)) +
+  geom_histogram() +
+  labs(x = "Total Transaction Amount", y = "Count") +
+  theme_minimal()
+
+grid.arrange(p1, p2, nrow = 2)
+```
+
+## Data Processing
+```{r, message=FALSE, results = 'hide'}
+# Identify the column names of categorical variables and factors
+categorical_columns <- sapply(c_data,  is.character)
+categorical_column_names <- names(c_data[categorical_columns])
+
+# Print the column names of categorical variables and factors
+
+```
+
+```{r, message = FALSE, results = 'hide'}
+# Convert values of Attrition_Flag to 0 and 1
+c_data$Attrition_Flag <- ifelse(c_data$Attrition_Flag == "Existing Customer", 0, 1)
+```
+
+```{r, include=FALSE}
+names(c_data)
+
+```
+
+
+```{r, echo=FALSE, message=FALSE}
+str(c_data)
+
+```
+
+```{r, echo=FALSE, message=FALSE}
+categorical_cols <- c("Gender", "Education_Level", "Marital_Status", "Income_Category", "Card_Category")
+
+c_data[categorical_cols] <- lapply(c_data[categorical_cols], as.factor)
+```
+
+
+```{r, echo=TRUE, message=FALSE}
+# Create a formula for one-hot encoding
+formula <- as.formula(paste("factor(Attrition_Flag) ~", paste(categorical_cols, collapse = "+")))
+
+# Create dummy variables using dummyVars
+dummy_data <- predict(dummyVars(formula, data = c_data), newdata = c_data)
+```
+
+
+```{r, echo=TRUE, message=FALSE}
+# Combine numerical and one-hot encoded data
+combined_data <- cbind(c_data[, !(names(c_data) %in% categorical_cols)], dummy_data)
+```
+
+
+```{r, echo=TRUE, message=FALSE}
+# Split the data into training and testing sets
+set.seed(42)
+train_indices <- createDataPartition(combined_data$Attrition_Flag, p = 0.7, list = FALSE)
+train_data <- combined_data[train_indices, ]
+test_data <- combined_data[-train_indices, ]
+```
+
+```{r, echo=TRUE, message=FALSE}
+# Separate predictors (x) and target variable (y) in the training and testing sets
+X_train <- train_data[, !(names(train_data) %in% "Attrition_Flag")]
+y_train <- train_data$Attrition_Flag
+X_test <- test_data[, !(names(test_data) %in% "Attrition_Flag")]
+y_test <- test_data$Attrition_Flag
+```
+
+## Machine Learning Modeling
+
+
+```{r,echo=TRUE, message=FALSE}
+
+# Random Forest Classifier
+rf_model <- randomForest(x = X_train, y = as.factor(y_train), class.factors = levels(as.factor(y_train)))
+
+```
+
+
+```{r, echo=TRUE, message=FALSE}
+# Train the SVM model
+svm_model <- svm(x = X_train, y = as.factor(y_train))
+
+```
+
+```{r, echo=TRUE, message=FALSE}
+# Train the Decision Tree model
+dt_model <- rpart(y_train ~ ., data = X_train, method = "class")
+
+```
+
+### Performance Metrics
+
+#### Random Forest Classifier
+
+```{r, echo=TRUE, message=FALSE}
+# Make predictions on the test set
+rf_predictions <- predict(rf_model, X_test)
+
+# Convert y_test to have the same levels as rf_predictions
+y_test <- factor(y_test, levels = levels(rf_predictions))
+
+# Calculate accuracy and confusion matrix
+rf_accuracy <- sum(rf_predictions == y_test) / length(y_test)
+rf_confusion <- confusionMatrix(rf_predictions, y_test)
+# Print accuracy and confusion matrix
+print(paste("Random Forest Accuracy:", rf_accuracy))
+print("Random Forest Confusion Matrix:")
+print(rf_confusion$table)
+
+```
+
+#### SVM Model
+
+```{r, echo=TRUE, message=FALSE}
+# SVM
+# Make predictions on the test set
+svm_predictions <- predict(svm_model, X_test)
+
+# Evaluate the model performance
+svm_accuracy <- sum(svm_predictions == y_test) / length(y_test)
+# Create the confusion matrix
+svm_confusion <- confusionMatrix(svm_predictions, y_test)
+print(paste("SVM Accuracy:", svm_accuracy))
+print("SVM Confusion Matrix:")
+print(svm_confusion$table)
+```
+
+
+#### Decision Tree model
+```{r, echo=TRUE, message=FALSE}
+# Decision Tree
+
+# Predict class labels on the test set
+dt_predictions <- predict(dt_model, newdata = X_test, type = "class")
+
+# Evaluate the model performance
+dt_accuracy <- sum(dt_predictions == y_test) / length(y_test)
+dt_confusion <- confusionMatrix(dt_predictions, y_test)
+print(paste("Decision Tree Accuracy:", dt_accuracy))
+print("Decision Tree Confusion Matrix:")
+print(dt_confusion$table)
+
+```
+
+#### Performance Metrics
+
+```{r, echo=FALSE, message=FALSE}
+
+# Create a data frame to store the performance metrics
+performance <- data.frame(Model = c("Random Forest", "SVM", "Decision Tree"),
+                          Accuracy = numeric(3),
+                          Precision = numeric(3),
+                          Recall = numeric(3),
+                          F1_Score = numeric(3))
+
+# Random Forest
+rf_accuracy <- sum(rf_predictions == y_test) / length(y_test)
+rf_confusion <- confusionMatrix(rf_predictions, y_test)
+rf_precision <- rf_confusion$byClass["Pos Pred Value"]
+rf_recall <- rf_confusion$byClass["Sensitivity"]
+rf_f1_score <- 2 * (rf_precision * rf_recall) / (rf_precision + rf_recall)
+performance[1, c("Accuracy", "Precision", "Recall", "F1_Score")] <- c(rf_accuracy, rf_precision, rf_recall, rf_f1_score)
+
+# SVM
+svm_accuracy <- sum(svm_predictions == y_test) / length(y_test)
+svm_confusion <- confusionMatrix(svm_predictions, y_test)
+svm_precision <- svm_confusion$byClass["Pos Pred Value"]
+svm_recall <- svm_confusion$byClass["Sensitivity"]
+svm_f1_score <- 2 * (svm_precision * svm_recall) / (svm_precision + svm_recall)
+performance[2, c("Accuracy", "Precision", "Recall", "F1_Score")] <- c(svm_accuracy, svm_precision, svm_recall, svm_f1_score)
+
+# Decision Tree
+dt_accuracy <- sum(dt_predictions == y_test) / length(y_test)
+dt_confusion <- confusionMatrix(dt_predictions, y_test)
+dt_precision <- dt_confusion$byClass["Pos Pred Value"]
+dt_recall <- dt_confusion$byClass["Sensitivity"]
+dt_f1_score <- 2 * (dt_precision * dt_recall) / (dt_precision + dt_recall)
+performance[3, c("Accuracy", "Precision", "Recall", "F1_Score")] <- c(dt_accuracy, dt_precision, dt_recall, dt_f1_score)
+
+# Print the performance metrics
+print(performance)
+
+```
+
+```{r}
+# Reshape the performance data frame for plotting
+performance_long <- reshape2::melt(performance, id.vars = "Model")
+
+# Grouped Bar Chart for Performance Metrics
+bar_chart <- ggplot(performance_long, aes(x = Model, y = value, fill = variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Model", y = "Performance", title = "Performance Metrics") +
+  scale_fill_manual(values = c(Accuracy = "blue", Precision = "red", Recall = "green", F1_Score = "purple")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+print(bar_chart)
+```
+
+```{r}
+# performance of the best model (Roc curve)
+library(pROC)
+
+# Calculate ROC curve
+rf_predictions_char <- as.numeric(as.character(rf_predictions))
+rf_roc <- roc(response = as.numeric(y_test), predictor = rf_predictions_char)
+
+# Plot ROC curve
+plot(rf_roc, main = "ROC Curve", print.thres = "best", legacy.axes = TRUE)
+
+```
+
+
+## Discussion
+In performance metrics we using the different kinds of methodology to training dataset and test dataset Including Random Forest Classifier, SVM Model, Decision Tree model. Through the different model performance metrics we could know Random Forest is the highest in accuracy rate. Besides that, in precision, recall and F1 score the Random Forest performance better than other models. Therefore, Random Forest model will adopted as our first choice.
+
+## Conclusion
+- There are 16.07% of customers who have churned.<br>
+- The proportion of gender count is almost equally distributed (52.9% male and 47.1%) compare to proportion of      existing and attributed customer count (83.9% and 16.1%) which is highly imbalanced<br>
+- The proportion of attrited customers by gender there are 14.4% more male than female who have churned<br>
+- Customers who have churned are highly educated - A high proportion of education level of attrited customer is Graduate level (29.9%), followed by Post-Graduate level (18.8%)<br>
+- A high proportion of marital status of customers who have churned is Married (43.6%), followed by Single (41.1%) compared to Divorced (7.4%) and Unknown (7.9%) status - Marital stuats of the attributed customers are highly clustered in Married status and Single<br>
+- As you can see from the proportion of income category of attrited customer, it is highly concentrated around $60K - $80K income (37.6%), followed by Less than $40K income (16.7%) compare to attrited customers with higher annual income of 80K-120K(14.9%) and over $120K + (11.5%). I assume that customers with higher income doesn't likely to leave their credit card services than meddle-income customer

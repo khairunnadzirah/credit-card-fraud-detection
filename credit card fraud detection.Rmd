@@ -24,13 +24,6 @@ body {
 }
 </style>
 
-### Group Members
-* Khairun Nadzirah Binti Abdul Karim (22066330)
-* Muhammad Shahzad Rafiq (S2150889)
-* Sadman Chowdhury (S2199546)
-* Yin QiXiang (S2150692)
-* Xin Dong (22060696)
-
 ### Title 
 Credit Card Customer Churn Detection Using Machine Learning Algorithms
 ![](https://miro.medium.com/v2/resize:fit:1200/1*47xx1oXuebvYwZeB0OutuA.png)
